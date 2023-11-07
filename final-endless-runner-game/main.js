@@ -1,4 +1,3 @@
-// time *** 9:22:30 ***
 import Player from "./player.js";
 import { inputHandler } from "./input.js";
 import { Background } from "./background.js";
@@ -8,14 +7,14 @@ import { UI } from "./UI.js";
 window.addEventListener("load", () => {
   const canvas = document.getElementById("canvas1");
   const ctx = canvas.getContext("2d");
-  canvas.width = 500;
+  canvas.width = 900;
   canvas.height = 500;
 
   class Game {
     constructor(width, height) {
       this.width = width;
       this.height = height;
-      this.groundMargin = 83;
+      this.groundMargin = 50;
       this.speed = 0; // 0 or 3
       this.maxSpeed = 3;
       this.background = new Background(this);
@@ -25,15 +24,18 @@ window.addEventListener("load", () => {
       this.enemies = [];
       this.particles = [];
       this.collisions = [];
+      this.floatingMessage = [];
       this.maxParticles = 100;
       this.enemyTimer = 0;
-      this.maxTimeEnemy = 1000; // a new enemy per second (1000ms)
+      this.enemyInterval = 2000; // a new enemy per 2 seconds (2000ms)
       this.debug = false;
       this.score = 0;
+      this.winningScore = 40;
       this.fontColor = "black";
       this.time = 0;
-      this.maxTime = 10000; // x seconds
+      this.maxTime = 30000; // 30 seconds
       this.gameOver = false;
+      this.lives = 5;
       this.player.currentState = this.player.states[0]; // it's here because all the player obj needs to be full loaded
       this.player.currentState.enter(); // to activate its inicial default state
     }
@@ -44,38 +46,51 @@ window.addEventListener("load", () => {
       this.background.update();
       this.player.update(this.input.keys, deltaTime); // param. is keys array
       // handle Enemies
-      if (this.enemyTimer > this.maxTimeEnemy) {
+      if (this.enemyTimer > this.enemyInterval) {
         this.addEnemy();
         this.enemyTimer = 0;
       } else {
         this.enemyTimer += deltaTime;
       }
-      this.enemies.forEach((enemy, index) => {
+      this.enemies.forEach((enemy) => {
         enemy.update(deltaTime);
-        if (enemy.markedForDeletion) this.enemies.splice(index, 1);
+      });
+      // handle messages
+      this.floatingMessage.forEach((message) => {
+        message.update();
       });
       // handle particles
-      this.particles.forEach((particle, index) => {
+      this.particles.forEach((particle) => {
         particle.update();
-        if (particle.markedForDeletion) this.particles.splice(index, 1);
       });
       if (this.particles.length > this.maxParticles) {
         // kepping only the first 100 particles in the array
         this.particles.length = this.maxParticles;
       }
       // handle collision sprites
-      this.collisions.forEach((collision, index) => {
+      this.collisions.forEach((collision) => {
         collision.update(deltaTime);
-        if (collision.markedForDelection) this.collisions.splice(index, 1);
       });
+      // filter arrays
+      this.enemies = this.enemies.filter((enemy) => !enemy.markedForDeletion); // only false;
+      this.particles = this.particles.filter(
+        (particle) => !particle.markedForDeletion
+      );
+      this.collisions = this.collisions.filter(
+        (collision) => !collision.markedForDeletion
+      );
+      this.floatingMessage = this.floatingMessage.filter(
+        (message) => !message.markedForDeletion
+      );
     }
     draw(context) {
       this.background.draw(context);
       this.player.draw(context);
       this.enemies.forEach((enemy) => enemy.draw(context));
-      this.UI.draw(context);
       this.particles.forEach((particle) => particle.draw(context));
       this.collisions.forEach((collision) => collision.draw(context));
+      this.floatingMessage.forEach((message) => message.draw(context));
+      this.UI.draw(context);
     }
     addEnemy() {
       if (this.speed > 0 && Math.random() > 0.5) {
